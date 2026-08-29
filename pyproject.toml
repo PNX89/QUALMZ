@@ -53,7 +53,7 @@ addopts = "-q"
 filterwarnings = ["error"]
 
 [tool.mypy]
-files = ["src", "tests", "tests_store", "scripts", "dags"]
+files = ["src", "tests", "tests_store", "scripts", "dags", "examples"]
 strict = true
 
 [[tool.mypy.overrides]]
