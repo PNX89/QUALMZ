@@ -166,3 +166,30 @@ def test_the_offline_suite_imports_nothing_from_the_verdict_or_contract_groups()
         f"the offline suite imports a measuring instrument, so it is no longer the thing a "
         f"stranger gets by cloning and running pytest: {offenders}"
     )
+
+
+def test_mypy_passes_with_the_dev_group_alone() -> None:
+    """The condition CI actually runs in, asserted rather than reasoned about.
+
+    The lint job installs `--dev` and nothing else, so on a clean runner Great Expectations,
+    MLflow and Airflow do not exist at all. That is a DIFFERENT mypy error from the one seen on
+    a developer's machine, where they are installed but ship no types: `import-not-found` rather
+    than `attr-defined`, and an override naming only the submodule silences the second and not
+    the first. This repository shipped that exact mistake once.
+
+    Rather than run mypy twice here, which would be slow and would need a second environment,
+    the override list is checked to name each package at BOTH levels.
+    """
+    overrides = pyproject()["tool"]["mypy"]["overrides"]  # type: ignore[index]
+    named: set[str] = set()
+    for override in overrides:
+        named.update(override.get("module", []))
+    for package in ("great_expectations", "mlflow", "airflow"):
+        assert package in named, (
+            f"{package} is not named as an untyped module, so mypy will fail to find it on a "
+            f"runner that installed the dev group alone"
+        )
+        assert f"{package}.*" in named, (
+            f"{package}.* is not named, so a submodule import would fail even though the "
+            f"package itself is declared"
+        )
