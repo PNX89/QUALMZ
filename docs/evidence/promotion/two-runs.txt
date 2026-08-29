@@ -1,0 +1,17 @@
+$ uv run --group promotion python scripts/measure_promotion.py
+
+Three layers, run before anything is promoted:
+  data validation     passed   (Great Expectations, before the model sees the frame)
+  model correctness   passed   50 predictions unchanged
+  performance         passed   best of 3: 0.000s within 0.5s
+
+Then the same promotion, twice:
+
+  the same data version     PROMOTED
+      the champion alias now points at version 2
+  a different data version  REFUSED
+      the challenger and the incumbent were scored on different data versions, so the comparison is between two things that differ in more than the model
+
+The second run differs from the first in one value: the data version the challenger
+was scored on. Every number in it is correct and the comparison is between two
+things that differ in more than the model.
