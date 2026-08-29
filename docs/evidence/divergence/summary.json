@@ -1,0 +1,30 @@
+{
+  "seed": 20260829,
+  "days": 500,
+  "block_length": 20,
+  "threshold": 2.0,
+  "drag_from_day": 300,
+  "drag_per_day": 0.0012,
+  "cases": {
+    "a bug": {
+      "mean_difference": 0.00048,
+      "naive_standard_error": 2.632e-05,
+      "block_standard_error": 0.00012,
+      "naive_t": 18.239,
+      "block_t": 4.0,
+      "naive_alerts": true,
+      "block_alerts": true,
+      "blocks": 25
+    },
+    "bad luck": {
+      "mean_difference": -0.00028372,
+      "naive_standard_error": 8.711e-05,
+      "block_standard_error": 0.0002982,
+      "naive_t": -3.257,
+      "block_t": -0.951,
+      "naive_alerts": true,
+      "block_alerts": false,
+      "blocks": 25
+    }
+  }
+}
