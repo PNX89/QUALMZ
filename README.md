@@ -172,6 +172,8 @@ Part of the Q...Z toolset, all of it designing for the failure that does not ann
   configuration does not buy another.
 - [QUEUEZ](https://github.com/PNX89/QUEUEZ), ordering a feed by its sequence, because on a real
   recorded session the clock goes backwards.
+- [QUANDARYZ](https://github.com/PNX89/QUANDARYZ), counting the distinct screens a component can
+  settle into when its responses arrive out of order.
 
 **On QUIZZ.** QUIZZ owns the holdout window and promotion schema and the role-scoped grant that
 goes with them, and says so in its own source. This repository adopts both rather than inventing
