@@ -1,0 +1,14 @@
+$ airflow dags test promotion   # with no approval recorded
+  Condition result is False
+  Skipping downstream tasks
+  state=success
+  tasks_skipped=1
+
+$ QUALMZ_APPROVED_BY=quelin airflow dags test promotion
+  Condition result is True
+  move_the_champion_alias
+  state=success
+
+The halted run finishes SUCCESS, not FAILED. A promotion waiting on a named human is not
+an incident, and a pipeline that pages somebody for one is a pipeline whose alerts get
+muted within a fortnight.

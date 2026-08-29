@@ -23,6 +23,11 @@ dev = [
 store = [
     "psycopg[binary]>=3.2",
 ]
+# The DAG. Airflow is a large install and it is here because the interesting property of a
+# promotion pipeline is what happens when a gate fails, which a script cannot demonstrate.
+orchestration = [
+    "apache-airflow>=3.3",
+]
 # The promotion machinery. Great Expectations declares `<3.14,>=3.10`, which is what fixes this
 # repository's upper bound: a floor of 3.11 and a ceiling below 3.14, matching the CI matrix.
 promotion = [
@@ -48,7 +53,7 @@ addopts = "-q"
 filterwarnings = ["error"]
 
 [tool.mypy]
-files = ["src", "tests", "tests_store", "scripts"]
+files = ["src", "tests", "tests_store", "scripts", "dags"]
 strict = true
 
 [[tool.mypy.overrides]]
@@ -57,7 +62,13 @@ strict = true
 # names that exist and work. Both are declared here rather than excluding the file, so
 # everything else in scripts/measure_promotion.py is still checked. Verified rather than
 # assumed: `great_expectations.expectations.ExpectColumnValuesToNotBeNull` imports and runs.
-module = ["pandas", "great_expectations.expectations", "mlflow", "mlflow.*"]
+module = [
+    "pandas",
+    "great_expectations.expectations",
+    "mlflow",
+    "mlflow.*",
+    "airflow.*",
+]
 ignore_missing_imports = true
 # AND implicit_reexport, WHICH ignore_missing_imports DOES NOT COVER. `strict` turns off
 # implicit re-export, and Great Expectations exposes its expectation classes through a module
