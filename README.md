@@ -142,6 +142,41 @@ uv run mypy .
 ```
 
 <!-- toolset:start -->
+
+Part of the Q...Z toolset, all of it designing for the failure that does not announce itself:
+
+- [QUACKZ](https://github.com/PNX89/QUACKZ), deflating a backtest that only looks good because
+  it was picked out of two hundred.
+- [QUOTEZ](https://github.com/PNX89/QUOTEZ), market data an agent can read and cannot act on.
+- [QUELLZ](https://github.com/PNX89/QUELLZ), measuring what prompt-injection containment costs
+  in utility as well as in attack rate.
+- [QUIDZ](https://github.com/PNX89/QUIDZ), refusing the outbound payment that would have gone
+  out twice.
+- [QUESTZ](https://github.com/PNX89/QUESTZ), stopping a scraper before it writes a CSV from a
+  page that changed shape.
+- [QUIZZ](https://github.com/PNX89/QUIZZ), answering what a statistic said at the time, and
+  refusing when it cannot.
+- [QUARANTINEZ](https://github.com/PNX89/QUARANTINEZ), treating an outcome the venue never
+  confirmed as terminal rather than as a retry.
+- [QUENCHZ](https://github.com/PNX89/QUENCHZ), deciding in the open what a tool server gets free
+  while it is still somebody's subprocess.
+- [QUILTZ](https://github.com/PNX89/QUILTZ), proving infrastructure code wrong without a cloud
+  account, and saying what that cannot show.
+- [QUAYZ](https://github.com/PNX89/QUAYZ), telling a crash loop from an OOMKill, and naming the
+  failure that no single field finds.
+- [QUARRYZ](https://github.com/PNX89/QUARRYZ), keeping every version a statistical office
+  published, and failing the build when it quietly issues another.
+- [QUASHZ](https://github.com/PNX89/QUASHZ), refusing a row whose outcome had not been decided
+  yet when the decision would have been made.
+- QUALMZ, this one: a fixed number of looks at the holdout, where re-running the same
+  configuration does not buy another.
+
+**On QUIZZ.** QUIZZ owns the holdout window and promotion schema and the role-scoped grant that
+goes with them, and says so in its own source. This repository adopts both rather than inventing
+a second shape for one idea, which is why it is smaller than it looks. The direction matters:
+inventing another schema for one holdout is how a pair of repositories end up disagreeing about
+what was held back and when.
+
 <!-- toolset:end -->
 
 ## Licence
