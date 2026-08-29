@@ -95,3 +95,21 @@ jobs:
           git status --porcelain docs/evidence/promotion
           git diff --exit-code -- docs/evidence/promotion
           test -z "$(git status --porcelain docs/evidence/promotion)"
+
+  # The halt, run rather than asserted. A designed halt nobody has watched stop something is a
+  # comment in a runbook. Its own job because Airflow is a large install.
+  halt:
+    name: a promotion that stops for a named human, and one that does not
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          enable-cache: true
+      - name: run the DAG without an approval and then with one
+        run: scripts/measure_halt.sh
+      - name: fail if any measured outcome or transcript has changed
+        run: |
+          git status --porcelain docs/evidence/halt
+          git diff --exit-code -- docs/evidence/halt
+          test -z "$(git status --porcelain docs/evidence/halt)"
