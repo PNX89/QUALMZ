@@ -25,6 +25,7 @@ import pathlib
 import sys
 import tempfile
 import warnings
+from typing import Any
 
 os.environ.setdefault("GX_ANALYTICS_ENABLED", "false")
 
@@ -45,7 +46,7 @@ A_DIFFERENT_DATA_VERSION = "0" * 64
 SECONDS_ALLOWED = 0.5
 
 
-def feature_frame() -> object:
+def feature_frame() -> Any:
     """The committed paired returns, as the frame a model would be scored on."""
     import pandas as pd
 
@@ -60,7 +61,7 @@ def feature_frame() -> object:
     )
 
 
-def validate(frame: object) -> tuple[bool, list[str]]:
+def validate(frame: Any) -> tuple[bool, list[str]]:
     """Layer one, run before the model sees anything."""
     import great_expectations as gx
 
@@ -93,9 +94,9 @@ def validate(frame: object) -> tuple[bool, list[str]]:
     return bool(outcome.success), failures
 
 
-def predictions(frame: object) -> list[float]:
+def predictions(frame: Any) -> list[float]:
     """A deliberately boring model, because the subject here is the pipeline, not the model."""
-    return [round(float(value) * 100, 8) for value in frame["simulated"].tolist()[:50]]  # type: ignore[index]
+    return [round(float(value) * 100, 8) for value in frame["simulated"].tolist()[:50]]
 
 
 def move_the_alias(challenger_version: int) -> str:
@@ -145,7 +146,7 @@ def main() -> int:
         performance(lambda: predictions(frame), seconds_allowed=SECONDS_ALLOWED),
     ]
 
-    runs: dict[str, object] = {}
+    runs: dict[str, dict[str, Any]] = {}
     for name, challenger_version in (
         ("the same data version", ADMITTED_DATA_VERSION),
         ("a different data version", A_DIFFERENT_DATA_VERSION),
@@ -161,7 +162,7 @@ def main() -> int:
             "alias_now_points_at_version": alias_moved_to,
         }
 
-    summary = {
+    summary: dict[str, Any] = {
         "data_validation": {"passed": validated, "failed_expectations": failures},
         "layers": [
             {"layer": layer.layer, "passed": layer.passed, "detail": layer.detail}
@@ -174,13 +175,13 @@ def main() -> int:
 
     good = runs["the same data version"]
     bad = runs["a different data version"]
-    if not good["promote"]:  # type: ignore[index]
+    if not good["promote"]:
         print(
             "the in-order run did not promote, so nothing here has been seen working",
             file=sys.stderr,
         )
         return 1
-    if bad["promote"]:  # type: ignore[index]
+    if bad["promote"]:
         print("a challenger scored on a different data version was promoted", file=sys.stderr)
         return 1
 
@@ -195,7 +196,8 @@ def main() -> int:
             f"   (Great Expectations, before the model sees the frame)",
             file=handle,
         )
-        for layer in summary["layers"]:  # type: ignore[union-attr]
+        recorded_layers: list[dict[str, Any]] = summary["layers"]
+        for layer in recorded_layers:
             print(
                 f"  {layer['layer']:<20}{'passed' if layer['passed'] else 'FAILED'}   "
                 f"{layer['detail']}",
@@ -204,15 +206,16 @@ def main() -> int:
         print(file=handle)
         print("Then the same promotion, twice:", file=handle)
         print(file=handle)
-        for name, run in runs.items():
-            outcome = "PROMOTED" if run["promote"] else "REFUSED"  # type: ignore[index]
+        for name, entry in runs.items():
+            run: dict[str, Any] = entry
+            outcome = "PROMOTED" if run["promote"] else "REFUSED"
             print(f"  {name:<26}{outcome}", file=handle)
-            for reason in run["reasons"]:  # type: ignore[index]
+            for reason in run["reasons"]:
                 print(f"      {reason}", file=handle)
-            if run["alias_now_points_at_version"]:  # type: ignore[index]
+            if run["alias_now_points_at_version"]:
                 print(
                     f"      the champion alias now points at version "
-                    f"{run['alias_now_points_at_version']}",  # type: ignore[index]
+                    f"{run['alias_now_points_at_version']}",
                     file=handle,
                 )
         print(file=handle)
