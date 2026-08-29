@@ -50,3 +50,18 @@ filterwarnings = ["error"]
 [tool.mypy]
 files = ["src", "tests", "tests_store", "scripts"]
 strict = true
+
+[[tool.mypy.overrides]]
+# pandas ships no stubs of its own (pandas-stubs is a separate project) and Great Expectations
+# re-exports its expectation classes without declaring them in `__all__`, so mypy refuses to see
+# names that exist and work. Both are declared here rather than excluding the file, so
+# everything else in scripts/measure_promotion.py is still checked. Verified rather than
+# assumed: `great_expectations.expectations.ExpectColumnValuesToNotBeNull` imports and runs.
+module = ["pandas", "great_expectations.expectations", "mlflow", "mlflow.*"]
+ignore_missing_imports = true
+# AND implicit_reexport, WHICH ignore_missing_imports DOES NOT COVER. `strict` turns off
+# implicit re-export, and Great Expectations exposes its expectation classes through a module
+# that does not list them in `__all__`, so mypy refuses names that import and run. That is a
+# packaging detail of theirs rather than a defect here, and narrowing it to these modules keeps
+# the rule on for everything else.
+implicit_reexport = true
