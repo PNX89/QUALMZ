@@ -62,11 +62,17 @@ strict = true
 # names that exist and work. Both are declared here rather than excluding the file, so
 # everything else in scripts/measure_promotion.py is still checked. Verified rather than
 # assumed: `great_expectations.expectations.ExpectColumnValuesToNotBeNull` imports and runs.
+# THE PARENT MODULE AS WELL AS THE SUBMODULE, because they are two different errors. A missing
+# submodule attribute is `attr-defined`; a package mypy cannot find at all is `import-not-found`,
+# and the lint job installs only the dev group, so on a clean runner none of these exist. Tested
+# by running mypy in an environment with `--dev` alone rather than by reasoning about it.
 module = [
     "pandas",
-    "great_expectations.expectations",
+    "great_expectations",
+    "great_expectations.*",
     "mlflow",
     "mlflow.*",
+    "airflow",
     "airflow.*",
 ]
 ignore_missing_imports = true
