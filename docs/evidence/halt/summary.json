@@ -1,0 +1,16 @@
+{
+  "without_an_approval": {
+    "tasks_skipped": 1,
+    "conditions": [
+      "Condition"
+    ],
+    "run_state": "success"
+  },
+  "with_an_approval": {
+    "tasks_skipped": 0,
+    "conditions": [
+      "Condition"
+    ],
+    "run_state": "success"
+  }
+}
