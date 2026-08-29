@@ -1,0 +1,16 @@
+momentum has 3 looks at the 2024H2 holdout.
+
+  the first idea                             a new look   1 of 3 used
+  the same thing again, after a crash        not a new look   1 of 3 used
+  the same thing with the keys reordered     not a new look   1 of 3 used
+  a longer lookback                          a new look   2 of 3 used
+  and a different threshold                  a new look   3 of 3 used
+  one more idea                              REFUSED
+      'momentum' has taken 3 of 3 looks at '2024H2', and this configuration has not been evaluated before, so it would be the 4th
+
+  The second and third rows are the point. A crash and a reordered dictionary
+  are the same configuration, so neither costs anything, and the count does not
+  move. A changed parameter is a different question, so it does.
+
+  The constraint is in the schema rather than in this file, so an insert that
+  goes around it entirely still fails.
