@@ -1,0 +1,52 @@
+[project]
+name = "qualmz"
+version = "0.1.0"
+description = "A researcher gets a fixed number of looks at the holdout, and re-running the same configuration does not buy another one"
+requires-python = ">=3.11,<3.14"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "pyyaml>=6.0.3",
+    "types-pyyaml>=6.0.12.20260815",
+]
+# The store the budget is enforced IN. Separate from the default install because the offline
+# suite runs the same rules against SQLite, and the claim that it does is worth being able to
+# check by looking at one file.
+store = [
+    "psycopg[binary]>=3.2",
+]
+# The promotion machinery. Great Expectations declares `<3.14,>=3.10`, which is what fixes this
+# repository's upper bound: a floor of 3.11 and a ceiling below 3.14, matching the CI matrix.
+promotion = [
+    "great-expectations>=1.21",
+    "mlflow>=3.15",
+    "numpy>=2.1",
+    "pandas>=2.2",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/qualmz"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["error"]
+
+[tool.mypy]
+files = ["src", "tests", "tests_store"]
+strict = true

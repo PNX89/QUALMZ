@@ -1,0 +1,61 @@
+name: CI
+
+# Nothing here needs a credential and nothing here reaches a cloud account.
+#
+# The offline suite runs the look budget's real rules against SQLite, because the constraint the
+# budget rests on is one both stores honour. The claim that it behaves the same way in
+# PostgreSQL, and that the role-scoped grant actually refuses, needs a PostgreSQL, so that suite
+# is its own directory and its own job.
+#
+# No `schedule:` in any workflow here.
+#
+# Third-party actions are pinned by commit from the first one, with the version in a comment.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: lint, types and the offline suite
+    uses: PNX89/.github/.github/workflows/checks.yml@v1
+    with:
+      # Great Expectations declares `<3.14,>=3.10`, which is what fixes the ceiling of this
+      # matrix rather than a preference.
+      python-versions: '["3.11", "3.12", "3.13"]'
+      sync-args: "--dev"
+      run-mypy: true
+
+  # The same schema and the same grant, against the store they are enforced in. SQLite honours
+  # the unique constraint, which is why the offline suite can exercise the budget for real, but
+  # a grant is a PostgreSQL object and a barrier nobody has watched refuse is not a barrier.
+  store:
+    name: the budget and the grant, against a real PostgreSQL
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: qualmz
+          POSTGRES_PASSWORD: qualmz-demo
+          POSTGRES_DB: qualmz
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U qualmz -d qualmz"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      QUALMZ_POSTGRES: postgresql://qualmz:qualmz-demo@127.0.0.1:5434/qualmz
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          enable-cache: true
+      - name: run the budget and the grant against PostgreSQL
+        run: uv run --group store pytest tests_store -q
