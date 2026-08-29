@@ -59,3 +59,21 @@ jobs:
           enable-cache: true
       - name: run the budget and the grant against PostgreSQL
         run: uv run --group store pytest tests_store -q
+
+  # Two paired series, one carrying a planted bug and one carrying only noise that wanders, and
+  # what each standard error says about them. Needs nothing but the standard library.
+  divergence:
+    name: bad luck or a bug, with a number in it
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          enable-cache: true
+      - name: generate both cases and compare them
+        run: uv run python scripts/measure_divergence.py
+      - name: fail if any measured outcome or transcript has changed
+        run: |
+          git status --porcelain docs/evidence/divergence src/qualmz/data
+          git diff --exit-code -- docs/evidence/divergence src/qualmz/data
+          test -z "$(git status --porcelain docs/evidence/divergence src/qualmz/data)"

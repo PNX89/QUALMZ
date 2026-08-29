@@ -1,0 +1,13 @@
+$ uv run python scripts/measure_divergence.py
+
+500 days, generated from seed 20260829. No capital was ever allocated and neither
+series is a record of anything traded.
+
+                 mean diff   naive t   block t      alerts
+  a bug           0.000480     18.24      4.00   naive and block
+  bad luck       -0.000284     -3.26     -0.95   naive
+
+The second row is two series with no drift between them at all, differing only by
+noise that wanders. The naive standard error treats each day as an independent
+observation and reports t = -3.26, which is a bug. Taking the standard error
+across 25 non-overlapping blocks instead gives -0.95, which is a fortnight of bad weeks.
