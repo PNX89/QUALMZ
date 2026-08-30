@@ -36,8 +36,22 @@ def test_the_halted_run_is_not_reported_as_a_failure() -> None:
 
     This is the difference between a pipeline people read and one whose alerts get muted. A run
     that stops where it was designed to stop finishes successful.
+
+    THE CONDITION AIRFLOW ACTUALLY REPORTED is checked here too. The parser used to split the
+    extracted text on whitespace, which turns "Condition result is False" into four tokens and
+    keeps only the first, so both runs recorded the bare word "Condition" regardless of which
+    way the gate actually went, and nothing here read the field to notice it was constant.
     """
-    assert summary()["without_an_approval"]["run_state"] == "success"
+    without = summary()["without_an_approval"]
+    assert without["run_state"] == "success"
+    assert "Condition result is False" in without["conditions"], (
+        "the run with no approval recorded no False condition at all, so the gate that is "
+        "supposed to halt here did not fire"
+    )
+    assert summary()["with_an_approval"]["conditions"] == ["Condition result is True"], (
+        "the approved run recorded a condition other than True, so a gate that should have let "
+        "it through instead stopped it"
+    )
 
 
 def test_every_gate_in_the_dag_is_a_short_circuit_rather_than_an_assertion() -> None:

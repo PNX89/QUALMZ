@@ -83,9 +83,19 @@ def test_two_identical_series_report_nothing_rather_than_an_infinity() -> None:
 
 
 def test_a_sample_too_short_for_blocks_raises_rather_than_answering() -> None:
-    """Three blocks produce a number, and it is a number nobody should act on."""
+    """Fewer than five blocks produce a number, and it is a number nobody should act on.
+
+    THE FLOOR IS FIVE, and the docstring in divergence.py used to name three as its example
+    while the code enforced five, so neither the prose nor this test's own original docstring
+    named the number the code actually uses. Both ends of the real boundary are exercised here:
+    four blocks, at block_length=20, is the largest count still refused, and five is the
+    smallest one this accepts.
+    """
     with pytest.raises(ValueError, match="not enough for a standard error"):
         compare([0.1] * 40, [0.2] * 40, block_length=20)
+    with pytest.raises(ValueError, match="not enough for a standard error"):
+        compare([0.1] * 80, [0.2] * 80, block_length=20)  # four blocks, still refused
+    compare([0.1] * 100, [0.2] * 100, block_length=20)  # five blocks, the first accepted
 
 
 def test_two_series_of_different_lengths_raise() -> None:

@@ -38,20 +38,27 @@ echo "==> 2. an approval recorded, which must run through"
 WITH="$(QUALMZ_APPROVED_BY=quelin run_dag)"
 
 extract() {
-  # Airflow's own words, not a summary of them.
-  printf '%s\n' "$1" | grep -oE "tasks_skipped=[0-9]+|state=(success|failed)|Condition result is (True|False)" | sort -u | tr '\n' ' '
+  # Airflow's own words, not a summary of them. ONE MATCH PER LINE, kept as a line rather than
+  # joined into one space-separated string: "Condition result is False" is three words the
+  # python below reads back as one token, and joining with spaces first left nothing standing
+  # between it and split() finding four.
+  printf '%s\n' "$1" | grep -oE "tasks_skipped=[0-9]+|state=(success|failed)|Condition result is (True|False)" | sort -u
 }
 
 python3 - "$OUT/summary.json" "$(extract "$WITHOUT")" "$(extract "$WITH")" <<'PYTHON'
 import json, sys
 
 def parse(text):
-    parts = text.split()
+    # SPLIT INTO LINES, NOT WORDS. extract() prints one match per line, and "Condition result is
+    # False" is one match. Splitting on all whitespace instead turned it into four tokens
+    # ("Condition", "result", "is", "False"), of which only the first starts with "Condition",
+    # so every run recorded the bare word "Condition" regardless of which branch actually ran.
+    parts = text.splitlines()
     return {
         "tasks_skipped": max(
             [int(p.split("=")[1]) for p in parts if p.startswith("tasks_skipped=")] or [0]
         ),
-        "conditions": sorted({p for p in parts if p.startswith("Condition")} | set()),
+        "conditions": sorted({p for p in parts if p.startswith("Condition")}),
         "run_state": next((p.split("=")[1] for p in parts if p.startswith("state=")), "unknown"),
     }
 

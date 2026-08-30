@@ -47,7 +47,11 @@ class Result:
     configuration_hash: str
 
     def __post_init__(self) -> None:
-        if len(self.provenance_sha256) != 64:
+        try:
+            is_a_sha256 = len(bytes.fromhex(self.provenance_sha256)) == 32
+        except ValueError:
+            is_a_sha256 = False
+        if not is_a_sha256:
             raise ValueError(
                 f"{self.provenance_sha256!r} is not a SHA-256. This repository CONSUMES a "
                 f"provenance hash minted where the dataset was admitted, and a value that is "

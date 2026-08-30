@@ -86,6 +86,21 @@ class BudgetExhaustedError(RuntimeError):
     """Raised when a NEW configuration would exceed the looks granted for a window."""
 
 
+def _ordinal(n: int) -> str:
+    """The English ordinal suffix, with the eleven, twelve and thirteen exception checked first.
+
+    THIS READ f"{n}th" UNCONDITIONALLY, which is the researcher's own refusal message and is
+    correct only for a budget of exactly three, where the refused look is the fourth. A budget
+    of one, two, twenty, twenty-one or twenty-two produced "2th", "3th", "21th" and "22th" in the
+    same sentence. The exception is checked before the last digit because 11, 12 and 13 take
+    "th" regardless of what looking at the last digit alone would say.
+    """
+    if 11 <= n % 100 <= 13:
+        return f"{n}th"
+    suffix = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
+
+
 @dataclass(frozen=True)
 class Look:
     """One evaluation of one configuration against one window."""
@@ -189,5 +204,5 @@ def take(connection: Any, look: Look) -> bool:
     raise BudgetExhaustedError(
         f"{look.strategy!r} has taken {taken} of {allowed} looks at {look.holdout_window!r}, "
         f"and this configuration has not been evaluated before, so it would be the "
-        f"{taken + 1}th"
+        f"{_ordinal(taken + 1)}"
     )

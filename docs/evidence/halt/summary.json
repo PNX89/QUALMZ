@@ -2,14 +2,15 @@
   "without_an_approval": {
     "tasks_skipped": 1,
     "conditions": [
-      "Condition"
+      "Condition result is False",
+      "Condition result is True"
     ],
     "run_state": "success"
   },
   "with_an_approval": {
     "tasks_skipped": 0,
     "conditions": [
-      "Condition"
+      "Condition result is True"
     ],
     "run_state": "success"
   }

@@ -38,6 +38,10 @@ def test_every_declared_marker_is_carried_by_a_test() -> None:
     deselected by default so nothing ever ran them or reported their absence. The test guarding
     the list compared the three NAMES against pyproject, which is a check that the file agrees
     with itself.
+
+    THIS REPOSITORY DECLARES NO MARKERS AT ALL, so the loop below runs zero times and asserts
+    nothing today. It is left in as a tripwire for the day a marker is added here, rather than
+    removed, because that is the one moment this exact defect could be introduced again.
     """
     tool = pyproject().get("tool", {})
     assert isinstance(tool, dict)

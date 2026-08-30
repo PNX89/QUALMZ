@@ -175,18 +175,37 @@ def test_every_command_the_page_offers_is_one_ci_runs() -> None:
 
 
 def test_every_block_quoted_from_a_transcript_is_in_that_transcript() -> None:
-    """OUTPUT, line by line, against the file each block names in an HTML comment."""
+    """OUTPUT, as a contiguous run of lines against the file each block names, in order.
+
+    A SET OF STRIPPED LINES USED TO BE THE COMPARISON, which is membership with no memory of
+    position, adjacency or repetition. Swapping the first two rows of the README's demo block
+    produces a transcript in which a re-run after a crash appears before the first look and
+    still reports "1 of 3 used", which the code cannot produce, and the old check stayed green:
+    both rewritten lines were still somewhere in the source file, just not next to each other in
+    the order shown. The prose directly under that block names which rows carry the argument, so
+    their position is part of the claim.
+
+    Blank lines are dropped from both sides before comparing, which is the tolerance the set
+    version was written for: a quote does not have to reproduce the blank lines around it, only
+    the run of content between them, in the order the source actually has it.
+    """
     blocks = re.findall(r"<!-- quoted from (\S+) -->\n```text\n(.*?)```", README, re.S)
     assert blocks, "no block on the page declares where it was quoted from"
     for path, body in blocks:
         source = REPO / path
         assert source.exists(), f"the page quotes {path}, which does not exist"
-        lines = {line.strip() for line in source.read_text("utf-8").splitlines()}
-        for line in body.splitlines():
-            if line.strip():
-                assert line.strip() in lines, (
-                    f"the page quotes {line.strip()!r} as coming from {path}, and it is not there"
-                )
+        quoted = [line.strip() for line in body.splitlines() if line.strip()]
+        assert quoted, f"the block quoting {path} is empty"
+        source_lines = [
+            line.strip() for line in source.read_text("utf-8").splitlines() if line.strip()
+        ]
+        width = len(quoted)
+        span = range(len(source_lines) - width + 1)
+        runs = [source_lines[start : start + width] for start in span]
+        assert quoted in runs, (
+            f"the page quotes this run of lines from {path}, in this order, and it does not "
+            f"appear there as a contiguous run: {quoted!r}"
+        )
 
 
 def test_every_path_and_link_on_the_page_exists() -> None:

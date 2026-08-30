@@ -44,8 +44,17 @@ def golden_digest(predictions: Sequence[float]) -> str:
     the golden set fail on a BLAS version, a different CPU, or a summation order, which trains
     everybody to re-pin it without reading the diff. Rounding to six places keeps every change
     that could alter a decision and drops the ones that cannot.
+
+    THE SIGN OF ZERO IS NOT PART OF THAT CONTRACT, and rounding alone did not drop it.
+    `round(-1e-9, 6)` is `-0.0`, and `json.dumps` renders that as the text `-0.0`, so two
+    predictions 2e-9 apart hashed differently whenever one landed either side of zero, a
+    thousand times below the precision this declares and exactly the kind of change a
+    reordered summation is most likely to cause. Adding 0.0 collapses a negative zero to a
+    positive one and leaves every other value exactly as rounding left it.
     """
-    payload = json.dumps([round(float(value), 6) for value in predictions], separators=(",", ":"))
+    payload = json.dumps(
+        [round(float(value), 6) + 0.0 for value in predictions], separators=(",", ":")
+    )
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
