@@ -19,6 +19,14 @@ nothing for a changed parameter is not a budget.
 WHAT THIS CANNOT DO. It cannot stop somebody looking at the window through a path that does not
 go through this table. That is what the role-scoped grant is for, and the grant is adopted from
 a sibling rather than reinvented here.
+
+AND THE TWO HALVES ARE NOT ENFORCED EQUALLY, which is worth saying plainly because the argument
+above reads as though they are. The REPEAT is a unique constraint, so it is refused by the store
+on every path in, including an insert that never came through this file. The CAP is a count, and
+SQL has nowhere to put a constraint relating the number of rows in one table to a column of
+another, so it is one statement rather than a constraint: an insert that goes around this API
+can still push the count past the grant, and against PostgreSQL at READ COMMITTED two concurrent
+transactions can as well.
 """
 
 from __future__ import annotations
@@ -52,6 +60,28 @@ create table if not exists look (
 """
 
 
+#: The look is counted and written in ONE statement, so nothing of this repository's holds
+#: between the two. It read the count, compared it, and inserted, which is the application-code
+#: counter this file argues against written in three lines of Python: two workers evaluating two
+#: different configurations both passed the comparison and both inserted, and a budget of three
+#: recorded four looks with nothing raised.
+#:
+#: WHAT ONE STATEMENT DOES AND DOES NOT CLOSE, measured rather than assumed. Against SQLite,
+#: which serialises its writers, the two workers above cannot both pass. Against PostgreSQL 17.10
+#: at its default READ COMMITTED, two concurrent transactions each take their snapshot before the
+#: other commits, so both subqueries still count two and the ledger still reaches four. Closing
+#: that needs a lock held across statements (`for update`), which SQLite does not have, or a
+#: caller that runs this inside a transaction, which this signature cannot promise. So the window
+#: is a statement rather than three, and the paragraph at the top of this file says the rest.
+COUNT_THEN_INSERT = (
+    "insert into look "
+    "select ?, ?, ?, ?, ? "
+    "where (select count(*) from look where strategy = ? and holdout_window = ?) "
+    "< (select looks_allowed from look_budget where strategy = ? and holdout_window = ?) "
+    "returning 1"
+)
+
+
 class BudgetExhaustedError(RuntimeError):
     """Raised when a NEW configuration would exceed the looks granted for a window."""
 
@@ -73,10 +103,28 @@ def configuration_hash(configuration: dict[str, Any]) -> str:
     SORTED KEYS AND A CANONICAL SEPARATOR, so two dictionaries that differ only in the order
     they were built in hash the same. Without that, a researcher who reordered their parameters
     would buy a second look at the same configuration, which is the loophole this is for.
+
+    AND NOTHING IS STRINGIFIED ON THE WAY IN. This took trouble over key order and then handed
+    every value json could not represent to `str`, which broke the same claim in both
+    directions. A set's repr depends on per-process string hash randomisation, so one
+    configuration holding a set of feature names hashed three different ways in five fresh
+    processes, and a researcher rerunning the same cell after a crash bought a fresh look every
+    time. In the other direction, a long array's repr elides its middle, so two genuinely
+    different parameter vectors hashed identically and a changed parameter cost nothing. A value
+    that cannot be written down is refused instead, for the same reason the empty configuration
+    above is: it cannot identify a look.
     """
     if not configuration:
         raise ValueError("an empty configuration cannot identify a look")
-    payload = json.dumps(configuration, sort_keys=True, separators=(",", ":"), default=str)
+    try:
+        payload = json.dumps(configuration, sort_keys=True, separators=(",", ":"))
+    except TypeError as unrepresentable:
+        raise ValueError(
+            f"this configuration holds a value json cannot represent ({unrepresentable}), and "
+            f"hashing its text instead would make one configuration hash differently in every "
+            f"process. Hand it something a reader could write down: a sorted list for a set, a "
+            f"list for an array, an ISO string for a date"
+        ) from unrepresentable
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
@@ -116,23 +164,30 @@ def take(connection: Any, look: Look) -> bool:
     if already is not None:
         return False
 
-    allowed = looks_allowed(connection, look.strategy, look.holdout_window)
-    taken = looks_taken(connection, look.strategy, look.holdout_window)
-    if taken >= allowed:
-        raise BudgetExhaustedError(
-            f"{look.strategy!r} has taken {taken} of {allowed} looks at {look.holdout_window!r}, "
-            f"and this configuration has not been evaluated before, so it would be the "
-            f"{taken + 1}th"
-        )
-
-    connection.execute(
-        "insert into look values (?, ?, ?, ?, ?)",
+    recorded = connection.execute(
+        COUNT_THEN_INSERT,
         (
             look.strategy,
             look.holdout_window,
             look.configuration_hash,
             look.looked_on,
             look.result,
+            look.strategy,
+            look.holdout_window,
+            look.strategy,
+            look.holdout_window,
         ),
+    ).fetchone()
+    if recorded is not None:
+        return True
+
+    # NOTHING WAS INSERTED, so either the budget is spent or none was ever granted. The count is
+    # read here to write a sentence a researcher can act on, and not to decide anything: the
+    # decision was made by the statement above.
+    allowed = looks_allowed(connection, look.strategy, look.holdout_window)
+    taken = looks_taken(connection, look.strategy, look.holdout_window)
+    raise BudgetExhaustedError(
+        f"{look.strategy!r} has taken {taken} of {allowed} looks at {look.holdout_window!r}, "
+        f"and this configuration has not been evaluated before, so it would be the "
+        f"{taken + 1}th"
     )
-    return True

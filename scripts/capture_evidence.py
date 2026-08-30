@@ -95,7 +95,35 @@ def python_range() -> str:
     return f"{ordered[0]} to {ordered[-1]}"
 
 
+def tags_describing_head() -> set[str]:
+    """The tags an ancestor of this commit carries, which is not the same as the tags that exist.
+
+    `git tag` lists every tag in the repository, wherever it points. A tag cut on a branch that
+    was later rewritten still lists, and the tree behind it is not the tree a reader is looking
+    at.
+    """
+    listed = subprocess.run(
+        ["git", "tag", "--merged", "HEAD"], capture_output=True, text=True, cwd=ROOT, check=True
+    )
+    return set(listed.stdout.split())
+
+
 def release() -> str:
+    """The release the card names, and whether it describes the tree the card was built from.
+
+    THE NAME WAS PUBLISHED WITHOUT BEING CHECKED. This took the newest tag by version sort and
+    returned it if it matched pyproject, which says nothing about where the tag points. v0.1.0
+    points at a commit that is not an ancestor of main, because the branch was rewritten after
+    tagging, so the card's release link leads to a tree that is not the repository underneath it.
+
+    IT SAYS SO RATHER THAN REFUSING, and refusing was the first instinct. The card is built from
+    this file's output by a generator outside this repository, which writes the release string
+    straight into an href, so the only other value that can be returned here reaches the page as
+    an address with a space in it. A broken link on the published page is a worse defect than a
+    stale one, and failing outright stops every capture and every CI run until somebody re-cuts a
+    published tag, which is not a decision this script gets to force. Re-cutting the tag is the
+    fix, and this is the sentence that says so out loud until it happens.
+    """
     version = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"][
         "version"
     ]
@@ -106,6 +134,13 @@ def release() -> str:
         return f"v{version} (untagged)"
     if tags[0] != f"v{version}":
         raise SystemExit(f"pyproject says {version} and the newest tag is {tags[0]}")
+    if tags[0] not in tags_describing_head():
+        print(
+            f"{tags[0]} does not describe this commit: it is a tag on a branch this one was "
+            f"rewritten away from, so the card's release link leads to a different tree. "
+            f"Re-cut it with `git tag -f {tags[0]} HEAD` and push the tag before publishing",
+            file=sys.stderr,
+        )
     return tags[0]
 
 

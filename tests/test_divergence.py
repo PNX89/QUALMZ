@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import pathlib
 from typing import Any
 
@@ -50,6 +51,35 @@ def test_the_block_standard_error_is_the_larger_one_in_both_cases() -> None:
             f"{name}: the block standard error is smaller than the naive one, which would mean "
             f"the dependence makes the estimate more precise rather than less"
         )
+
+
+def test_a_divergence_with_no_noise_at_all_alerts_rather_than_reporting_nothing() -> None:
+    """THE MOST CERTAIN DIVERGENCE THERE IS, which used to be answered with 0.0 and silence.
+
+    A live series that trails the simulation by the same amount every day has no dispersion in
+    its daily difference, which is the shape of a missing fee or a constant slippage term. Both
+    statistics divided by zero, both returned the value that means no evidence, and `alerts` was
+    False. Adding 1e-12 to one single day of the same series gave a block t of 1e11 and an
+    alert, so the verdict flipped on a grain of noise.
+    """
+    persistent = compare([0.001] * 100, [0.002] * 100, block_length=20)
+    assert persistent.block_standard_error == 0.0
+    assert persistent.mean_difference == pytest.approx(-0.001)
+    assert persistent.block_t == -math.inf
+    assert persistent.naive_t == -math.inf
+    assert persistent.alerts(threshold=2.0), (
+        "a live series behind the simulation by the same amount on every one of 100 days did "
+        "not alert, which is the divergence this exists to find"
+    )
+
+
+def test_two_identical_series_report_nothing_rather_than_an_infinity() -> None:
+    """The other half of the degenerate case, and the one 0.0 was the right answer to."""
+    same = compare([0.001] * 100, [0.001] * 100, block_length=20)
+    assert same.mean_difference == 0.0
+    assert same.block_t == 0.0
+    assert same.naive_t == 0.0
+    assert not same.alerts(threshold=2.0)
 
 
 def test_a_sample_too_short_for_blocks_raises_rather_than_answering() -> None:

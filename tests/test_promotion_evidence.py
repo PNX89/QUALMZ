@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import pathlib
 from typing import Any
 
 REPO = pathlib.Path(__file__).resolve().parents[1]
 EVIDENCE = REPO / "docs" / "evidence" / "promotion"
+HARNESS = REPO / "scripts" / "measure_promotion.py"
 
 
 def summary() -> dict[str, Any]:
@@ -37,6 +39,73 @@ def test_the_alias_moved_only_on_the_run_that_promoted() -> None:
     runs = summary()["runs"]
     assert runs["the same data version"]["alias_now_points_at_version"] == "2"
     assert runs["a different data version"]["alias_now_points_at_version"] is None
+
+
+def resolved(tree: ast.Module, expression: ast.expr) -> str:
+    """An expression as written, or the one expression a bare name was bound to."""
+    if not isinstance(expression, ast.Name):
+        return ast.unparse(expression)
+    bound = [
+        node.value
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Assign)
+        for target in node.targets
+        if isinstance(target, ast.Name) and target.id == expression.id
+    ]
+    assert len(bound) == 1, (
+        f"{expression.id!r} is assigned {len(bound)} times, so it names no one thing"
+    )
+    return ast.unparse(bound[0])
+
+
+def test_the_alias_move_and_the_recorded_verdict_cannot_disagree() -> None:
+    """THE ACTION AND THE RECORD OF IT WERE TWO EXPRESSIONS, and the shorter one moved the alias.
+
+    `decision.promote and validated` guarded the call, and
+    `decision.promote and validated and all_passed(layers)` was written into the summary. Model
+    correctness and performance, two of the four gates the README tabulates, were in the
+    reported verdict and not in the guard on the action, so a run with the pinned golden digest
+    changed printed that it had not promoted, exited 1, and had already set the champion alias
+    in the registry.
+
+    Read from the source rather than from the summary because the recorded run is the one where
+    every layer passed, which is exactly the run that cannot tell the two conditions apart. The
+    two expressions are required to be the same expression, whatever it is called.
+    """
+    tree = ast.parse(HARNESS.read_text(encoding="utf-8"))
+
+    guards = [
+        node.test
+        for node in ast.walk(tree)
+        if isinstance(node, ast.IfExp) and "move_the_alias(" in ast.unparse(node.body)
+    ]
+    assert len(guards) == 1, (
+        f"{len(guards)} conditional alias moves were found in the harness, and this expects one. "
+        f"Either the alias moved unconditionally or this test is reading the wrong file"
+    )
+    recorded = [
+        value
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Dict)
+        for key, value in zip(node.keys, node.values, strict=True)
+        if isinstance(key, ast.Constant) and key.value == "promote"
+    ]
+    assert len(recorded) == 1, (
+        f"{len(recorded)} promotion verdicts are recorded, and this expects one"
+    )
+
+    assert ast.unparse(guards[0]) == ast.unparse(recorded[0]), (
+        f"the alias moves on {ast.unparse(guards[0])!r} and the run is recorded as "
+        f"{ast.unparse(recorded[0])!r}. Two expressions is two decisions, and the one guarding "
+        f"the action is the one that promotes"
+    )
+
+    verdict = resolved(tree, guards[0])
+    for gate in ("decision.promote", "validated", "all_passed(layers)"):
+        assert gate in verdict, (
+            f"the alias moves on {verdict!r}, which does not consult {gate}. The README says "
+            f"each of the four gates stops the promotion on its own"
+        )
 
 
 def test_the_golden_digest_is_read_from_a_committed_file_and_not_recomputed() -> None:

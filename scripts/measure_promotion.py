@@ -154,9 +154,18 @@ def main() -> int:
         challenger = Result("momentum", 2, 0.61, challenger_version, "c" * 64)
         incumbent = Result("momentum", 1, 0.55, ADMITTED_DATA_VERSION, "c" * 64)
         decision = decide(challenger, incumbent, look_recorded=True, approved_by="quelin")
-        alias_moved_to = move_the_alias(2) if (decision.promote and validated) else None
+        # ONE NAME, USED BY BOTH THE ACTION AND THE RECORD OF IT. These were two expressions,
+        # and the shorter one guarded the alias: `decision.promote and validated` moved the
+        # champion alias, while `decision.promote and validated and all_passed(layers)` was
+        # written into the summary. Two of the four gates the README tabulates, model
+        # correctness and performance, were therefore in the reported verdict and not in the
+        # guard on the action. Run with the pinned golden digest changed, the harness printed
+        # that the run did not promote, exited 1, and had already set the champion alias in the
+        # registry. A gate that stops the report of a promotion has not stopped the promotion.
+        promoted = decision.promote and validated and all_passed(layers)
+        alias_moved_to = move_the_alias(2) if promoted else None
         runs[name] = {
-            "promote": decision.promote and validated and all_passed(layers),
+            "promote": promoted,
             "refusals": list(decision.refusals),
             "reasons": list(decision.reasons),
             "alias_now_points_at_version": alias_moved_to,
