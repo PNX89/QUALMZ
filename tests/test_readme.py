@@ -43,27 +43,61 @@ def own_prose() -> str:
 
 
 def test_the_numbers_on_the_page_are_the_measured_ones() -> None:
-    """NUMBER, as a table of claim against source, so an unedited neighbour is visible."""
+    """NUMBER, as a table of claim against source, so an unedited neighbour is visible.
+
+    EACH FIGURE IS LOOKED FOR IN THE SENTENCE THAT CARRIES IT, and the first version of this
+    asked only whether the digits appeared anywhere on the page. Two things were wrong with
+    that. `"500" in README` is satisfied by "5000", so a figure that drifts by gaining a digit
+    passes, which was demonstrated: 500 days rewritten as 5000 and 25 blocks as 250 left the
+    suite green. And a one-character figure is satisfied by any line at all, so the tasks-skipped
+    claim was being met by "1 of 3 used" in the demo block and the alias version by "2 of 3
+    used", neither of which is the sentence the claim is about.
+
+    The pattern beside each value is the shortest phrase that identifies the sentence rather
+    than the whole of it, because the page is allowed to be rewritten around its figures.
+    """
     divergence = evidence("divergence")
     halt = evidence("halt")
-    promotion = evidence("promotion")
 
+    # TO TWO PLACES on the statistics, which is what the transcript prints and therefore what a
+    # reader sees. The summary keeps three. Asserting the summary's precision would demand the
+    # page quote a number its own exhibit does not show.
     claims = {
-        "days in the paired series": str(divergence["days"]),
-        "blocks": str(divergence["cases"]["bad luck"]["blocks"]),
-        # TO TWO PLACES, which is what the transcript prints and therefore what a reader sees.
-        # The summary keeps three. Asserting the summary's precision would demand the page quote
-        # a number its own exhibit does not show.
-        "the naive statistic on bad luck": f"{divergence['cases']['bad luck']['naive_t']:.2f}",
-        "the block statistic on bad luck": f"{divergence['cases']['bad luck']['block_t']:.2f}",
-        "the naive statistic on a bug": f"{divergence['cases']['a bug']['naive_t']:.2f}",
-        "tasks skipped with no approval": str(halt["without_an_approval"]["tasks_skipped"]),
-        "the state a halted run finishes in": halt["without_an_approval"]["run_state"],
-        "the alias version": str(
-            promotion["runs"]["the same data version"]["alias_now_points_at_version"]
+        "days in the paired series": (r"paired series of {}\s+days", str(divergence["days"])),
+        "blocks": (
+            r"across\s+{}\s+non-overlapping blocks",
+            str(divergence["cases"]["bad luck"]["blocks"]),
+        ),
+        "the naive statistic on bad luck": (
+            r"bad luck\s+\S+\s+{}\s",
+            f"{divergence['cases']['bad luck']['naive_t']:.2f}",
+        ),
+        "the block statistic on bad luck": (
+            r"non-overlapping blocks gives {}",
+            f"{divergence['cases']['bad luck']['block_t']:.2f}",
+        ),
+        "the naive statistic on a bug": (
+            r"a bug\s+\S+\s+{}\s",
+            f"{divergence['cases']['a bug']['naive_t']:.2f}",
+        ),
+        "tasks skipped with no approval": (
+            r"tasks_skipped={}\b",
+            str(halt["without_an_approval"]["tasks_skipped"]),
+        ),
+        "the state a halted run finishes in": (
+            r"state={}\b",
+            str(halt["without_an_approval"]["run_state"]),
         ),
     }
-    missing = {name: value for name, value in claims.items() if value not in README}
+    # THE ALIAS VERSION IS NOT IN THIS TABLE, and it was, matching the "2" in "2 of 3 used".
+    # The page does not state which version the alias moved to, so there is no figure here to
+    # check; the recorded one is held against the run that produced it in
+    # tests/test_promotion_evidence.py instead.
+    missing = {
+        name: value
+        for name, (pattern, value) in claims.items()
+        if not re.search(pattern.format(re.escape(value)), README)
+    }
     assert missing == {}, f"the README no longer states these measured figures: {missing}"
 
 
@@ -74,16 +108,43 @@ def test_the_page_states_the_refusal_the_gate_exists_for() -> None:
     assert "differ in more than the model" in README
 
 
+#: Figures the page carries that are names rather than measurements, declared one at a time with
+#: the reason. A regex wide enough to skip these by their shape would skip a stale figure too.
+NOT_A_MEASUREMENT = {
+    256: "SHA-256 is the name of an algorithm",
+}
+
+
+def visible_prose() -> str:
+    """The page as a reader sees it: no link targets, and no cross-link footer.
+
+    A URL is not a claim. The Python badge's target carries `%20`, and reading a figure out of an
+    address nobody sees would either fail on a colour or teach whoever hit it to widen the
+    exception list until the check stopped meaning anything.
+    """
+    without_targets = re.sub(r"\]\([^)]*\)", "]", own_prose())
+    return re.sub(r"https?://\S+", "", without_targets)
+
+
 def test_no_large_number_on_the_page_is_one_nothing_measured() -> None:
-    """The half `in README` cannot do: a stale copy of a figure elsewhere on the page."""
+    """The half the table above cannot do: a stale copy of a figure elsewhere on the page.
+
+    THE SCAN USED TO MATCH NOTHING AT ALL. It looked for `\\b\\d{1,3}(?:,\\d{3})+\\b`, which is
+    a number written with thousands separators, and this page contains none, so `written` was
+    the empty set on every run and the assertion below was a tautology. The probe that proved it
+    is now the first assertion in the test: a scan with an empty field of view is not a check.
+
+    Digits after a decimal point are not integers on the page, so -0.000284 is not read as
+    284: the two-place statistics are held by name in the table above, where a change to one of
+    them says which one.
+    """
     divergence = evidence("divergence")
     measured: set[int] = {divergence["days"], divergence["seed"], divergence["drag_from_day"]}
     for case in divergence["cases"].values():
         measured.add(case["blocks"])
-    written = {
-        int(token.replace(",", "")) for token in re.findall(r"\b\d{1,3}(?:,\d{3})+\b", README)
-    }
-    invented = sorted(written - measured)
+    written = {int(token) for token in re.findall(r"(?<![\d.])\d{3,}(?![\d])", visible_prose())}
+    assert written, "the scan found no figure at all on the page, so it is checking nothing"
+    invented = sorted(written - measured - set(NOT_A_MEASUREMENT))
     assert invented == [], (
         f"the page states {invented}, and nothing under docs/evidence produces those figures"
     )

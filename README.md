@@ -132,6 +132,13 @@ The trial ledger is not complete either. It records the looks that went through 
 researcher who evaluated something outside it leaves no row. That is what the grant is for and
 it is why the two are separate.
 
+The two halves of the budget are also not enforced equally, and the paragraph above reads as
+though they are. A REPEAT is a unique constraint, so it is refused by the store on every path
+into the table. The CAP is a count, and SQL has nowhere to put a constraint relating the number
+of rows in one table to a column of another, so it is one statement rather than a constraint: an
+insert that never came through the API can still push the count past the grant, and so can two
+concurrent transactions in PostgreSQL, where each takes its snapshot before the other commits.
+
 ## Development
 
 ```text
