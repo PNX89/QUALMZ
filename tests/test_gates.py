@@ -4,7 +4,16 @@ from __future__ import annotations
 
 import time
 
-from qualmz.gates import GateResult, all_passed, golden_digest, model_correctness, performance
+import pytest
+
+from qualmz import gates
+from qualmz.gates import (
+    GateResult,
+    all_passed,
+    golden_digest,
+    model_correctness,
+    performance,
+)
 
 
 def test_the_golden_set_passes_on_identical_predictions() -> None:
@@ -27,20 +36,50 @@ def test_the_golden_set_tolerates_a_difference_below_the_declared_precision() ->
     assert golden_digest([0.123456]) != golden_digest([0.123457])
 
 
-def test_the_performance_gate_takes_the_best_run_rather_than_the_mean() -> None:
+class Clock:
+    """Stands in for the `time` module inside the gate, so its timings are stated not raced."""
+
+    def __init__(self, durations: list[float]) -> None:
+        readings: list[float] = []
+        running = 0.0
+        for duration in durations:
+            readings += [running, running + duration]
+            running += duration
+        self.readings = iter(readings)
+
+    def perf_counter(self) -> float:
+        return next(self.readings)
+
+
+def test_the_performance_gate_takes_the_best_run_rather_than_the_mean(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """A shared runner produces outliers in one direction only.
 
-    The work here is fast, and one call is made deliberately slow. Taking the mean would fail;
-    taking the best does not, which is the behaviour a gate needs on somebody else's noisy build.
+    ON A STATED CLOCK, because the first version of this asserted the property in its name and
+    could not tell it from the alternative it named. It slept 0.05s on one of three runs against
+    a budget of 0.02s, which puts the mean at 0.0167s and inside the budget, so swapping `min`
+    for the mean left the whole suite green, ten times out of ten on the named test alone. It
+    also leant on the machine being quick enough for the other two runs to round to zero.
+
+    So the timings are handed to the gate instead: a best of 0.001s inside the budget and a mean
+    of 0.031s outside it, and the arithmetic that makes those two disagree is asserted rather
+    than assumed.
     """
-    calls = {"n": 0}
+    budget = 0.02
+    elapsed = [0.001, 0.09, 0.001]
+    assert min(elapsed) < budget < sum(elapsed) / len(elapsed), (
+        "these timings no longer separate the best from the mean, so this test has stopped "
+        "discriminating between them whatever it is named"
+    )
 
-    def work() -> None:
-        calls["n"] += 1
-        if calls["n"] == 2:
-            time.sleep(0.05)
-
-    assert performance(work, seconds_allowed=0.02, repeats=3).passed
+    monkeypatch.setattr(gates, "time", Clock(elapsed))
+    result = performance(lambda: None, seconds_allowed=budget, repeats=3)
+    assert result.passed, (
+        "the gate failed a run whose fastest of three was inside the budget, which is a gate "
+        "that fires on somebody else's noisy build"
+    )
+    assert "best of 3: 0.001s" in result.detail
 
 
 def test_the_performance_gate_fails_when_every_run_is_over_budget() -> None:

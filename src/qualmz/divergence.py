@@ -20,8 +20,28 @@ whose size and start date are known rather than argued about.
 
 from __future__ import annotations
 
+import math
 import statistics
 from dataclasses import dataclass
+
+
+def statistic(mean: float, standard_error: float) -> float:
+    """The ratio, with no dispersion at all answered by the numerator rather than by zero.
+
+    ZERO DISPERSION IS NOT ZERO EVIDENCE, and returning 0.0 for it said the opposite. A live
+    series that trails the simulation by the same amount every single day, which is the shape a
+    missing fee, a missing spread or a constant slippage term makes, has no dispersion in its
+    daily difference, so the most certain divergence there is was reported as the value that
+    means nothing to report and no alert fired. One grain of noise on one day of that same series
+    gives a t of 1e11, so the answer was also discontinuous exactly where the evidence is
+    strongest.
+
+    Two identical series are the other case, and are genuinely nothing to report: no dispersion
+    and no difference either.
+    """
+    if standard_error:
+        return mean / standard_error
+    return math.copysign(math.inf, mean) if mean else 0.0
 
 
 @dataclass(frozen=True)
@@ -37,15 +57,11 @@ class Comparison:
 
     @property
     def naive_t(self) -> float:
-        if not self.naive_standard_error:
-            return 0.0
-        return self.mean_difference / self.naive_standard_error
+        return statistic(self.mean_difference, self.naive_standard_error)
 
     @property
     def block_t(self) -> float:
-        if not self.block_standard_error:
-            return 0.0
-        return self.mean_difference / self.block_standard_error
+        return statistic(self.mean_difference, self.block_standard_error)
 
     def alerts(self, *, threshold: float) -> bool:
         """The block statistic decides. The naive one is carried to show what it would say."""
