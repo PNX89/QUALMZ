@@ -89,13 +89,27 @@ def test_every_failing_gate_is_reported_rather_than_the_first_one() -> None:
 
 
 def test_a_provenance_value_that_is_not_a_hash_is_refused_at_construction() -> None:
-    """This repository consumes a hash minted elsewhere. A local substitute is not one."""
+    """This repository consumes a hash minted elsewhere. A local substitute is not one.
+
+    LENGTH ALONE USED TO BE THE WHOLE CHECK, so any sixty-four character string passed
+    construction: sixty-four z's, or the literal text of a placeholder waiting on a real hash
+    from the dataset team, both promoted. `"unknown"` only ever exercised the length branch,
+    which is why a second case of the right length and the wrong alphabet is added below.
+    """
     with pytest.raises(ValueError, match="not a SHA-256"):
         Result(
             model="m",
             version=1,
             score=0.5,
             provenance_sha256="unknown",
+            configuration_hash="c" * 64,
+        )
+    with pytest.raises(ValueError, match="not a SHA-256"):
+        Result(
+            model="m",
+            version=1,
+            score=0.5,
+            provenance_sha256="z" * 64,
             configuration_hash="c" * 64,
         )
 

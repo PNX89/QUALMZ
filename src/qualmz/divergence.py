@@ -72,8 +72,9 @@ def compare(simulated: list[float], live: list[float], *, block_length: int) -> 
     """Compare two return series, with the standard error taken across blocks.
 
     Raises rather than returning something meaningless when there are too few blocks for a
-    standard error to mean anything: three blocks produce a number, and it is a number nobody
-    should act on.
+    standard error to mean anything: fewer than five blocks produces a number, and it is a
+    number nobody should act on. Four is the largest count still refused and five is the
+    smallest one accepted.
     """
     if len(simulated) != len(live):
         raise ValueError("the two series cover different numbers of days")

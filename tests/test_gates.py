@@ -31,9 +31,20 @@ def test_the_golden_set_fails_on_an_improvement_as_well_as_a_regression() -> Non
 
 
 def test_the_golden_set_tolerates_a_difference_below_the_declared_precision() -> None:
-    """Otherwise it fails on a BLAS version and everybody learns to re-pin without reading."""
+    """Otherwise it fails on a BLAS version and everybody learns to re-pin without reading.
+
+    A SIGN FLIP AT ZERO used to be the exception to this tolerance rather than an instance of
+    it. `round(-1e-9, 6)` is `-0.0`, which `json.dumps` renders as the text `-0.0`, so a
+    difference of 2e-9 either side of zero hashed differently while a difference of 8e-10 away
+    from zero, asserted below, did not. A reordered summation is exactly the kind of change most
+    likely to flip that sign, which is the failure the declared precision exists to prevent.
+    """
     assert golden_digest([0.1234567891]) == golden_digest([0.1234567899])
     assert golden_digest([0.123456]) != golden_digest([0.123457])
+    assert golden_digest([1e-9]) == golden_digest([-1e-9]), (
+        "a sign flip 1e-9 either side of zero hashes differently, a thousand times below the "
+        "six place precision this function declares"
+    )
 
 
 class Clock:

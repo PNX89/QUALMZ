@@ -7,6 +7,7 @@ refuses, and that an ungranted budget is zero rather than unlimited.
 
 from __future__ import annotations
 
+import re
 import sqlite3
 from collections.abc import Iterator
 
@@ -104,6 +105,29 @@ def test_the_budget_refuses_the_look_after_the_last_one(store: sqlite3.Connectio
         assert take(store, look(configuration_hash({"lookback": lookback}))) is True
     with pytest.raises(BudgetExhaustedError, match="3 of 3 looks"):
         take(store, look(configuration_hash({"lookback": 40})))
+
+    # THE ORDINAL IN THAT REFUSAL, ACROSS THE BUDGETS WHERE IT USED TO BE WRONG. It was built as
+    # f"{taken + 1}th" unconditionally, which reads correctly above by chance: taken + 1 is 4,
+    # and 4 is the one single-digit case where "th" is right. Every other budget size produced
+    # "2th", "3th" or "22th" in the same sentence, which is what a researcher reads at the
+    # moment they are told they cannot look again. Checked here as the full tail of the message,
+    # not only the "n of m looks" prefix the test above stops at, and across the teens exception
+    # a naive last-digit rule would still get wrong.
+    cases = ((1, "the 2nd"), (2, "the 3rd"), (10, "the 11th"), (21, "the 22nd"))
+    for allowed, expected_tail in cases:
+        connection = sqlite3.connect(":memory:")
+        try:
+            connection.executescript(SCHEMA_SQL)
+            connection.execute(
+                "insert into look_budget values ('momentum', '2024H2', ?, '2026-08-29')",
+                (allowed,),
+            )
+            for n in range(allowed):
+                take(connection, look(configuration_hash({"n": n})))
+            with pytest.raises(BudgetExhaustedError, match=re.escape(expected_tail) + "$"):
+                take(connection, look(configuration_hash({"n": allowed})))
+        finally:
+            connection.close()
 
 
 class ASecondWorker:
