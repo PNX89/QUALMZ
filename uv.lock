@@ -1181,7 +1181,7 @@ wheels = [
 
 [[package]]
 name = "great-expectations"
-version = "1.21.0"
+version = "1.22.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "altair" },
@@ -1205,9 +1205,9 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "tzlocal" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e2/bb/6257abf4d6b443bc0630e020f758a02ec4d14ce2fc71482a6cdceffaf62e/great_expectations-1.21.0.tar.gz", hash = "sha256:0ab9683fea0884d383274aff6efc03f91faa8fdb944236bd7623b6adc82a7eef", size = 36794880, upload-time = "2026-08-19T17:01:19.797Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/be/f4/1f5fa2a3923874e5649255b5fb4003f4126f605567b84bc380834d258057/great_expectations-1.22.0.tar.gz", hash = "sha256:d04ae01b1b0ad540a29c149d8ce50cddfd0bd1e07b8af8072ba86798c13930ba", size = 36823974, upload-time = "2026-08-31T12:53:00.809Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/53/c5/98f3ba2fc9f573a3cb9875a6e2635138a7fcb18ee9a4b960a82d6812bb29/great_expectations-1.21.0-py3-none-any.whl", hash = "sha256:9067f178d9e98bac4cfaaf5b01bde5f1a1c3a73a24096c0ea724ef758793f819", size = 5703766, upload-time = "2026-08-19T17:01:16.015Z" },
+    { url = "https://files.pythonhosted.org/packages/3d/ad/b5e7c5ed6f935f0222307d845ca1788749748453d5d5db95af7869f5e89b/great_expectations-1.22.0-py3-none-any.whl", hash = "sha256:57aabb4df2fd65f85ff1cbacc3fb2d105b81a0a928f650233b31a905dcc3b2f1", size = 5706633, upload-time = "2026-08-31T12:52:56.791Z" },
 ]
 
 [[package]]
@@ -3321,7 +3321,7 @@ resolution-markers = [
     "python_full_version < '3.12'",
 ]
 dependencies = [
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" } },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/7a/97/5a3609c4f8d58b039179648e62dd220f89864f56f7357f5d4f45c29eb2cc/scipy-1.17.1.tar.gz", hash = "sha256:95d8e012d8cb8816c226aef832200b1d45109ed4464303e997c5b13122b297c0", size = 30573822, upload-time = "2026-02-23T00:26:24.851Z" }
 wheels = [
@@ -3376,7 +3376,7 @@ resolution-markers = [
     "python_full_version == '3.12.*'",
 ]
 dependencies = [
-    { name = "numpy", version = "2.5.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "numpy", version = "2.5.2", source = { registry = "https://pypi.org/simple" } },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/7e/74/66de6258867beb2ef08f35f9f2ac017a52cacd5081714d239ff1a442d458/scipy-1.18.1.tar.gz", hash = "sha256:52c4b7422442aba924d03ad4019852b08a92e64ea187b933135687bfe2747307", size = 30781235, upload-time = "2026-08-21T23:28:50.599Z" }
 wheels = [
